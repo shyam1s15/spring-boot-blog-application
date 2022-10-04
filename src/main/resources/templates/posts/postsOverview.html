@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html th:replace="commons/base::Layout(~{::section})">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+</head>
+
+<body>
+  <section>
+<form action="/posts/read" method="get">
+    <div class="row d-flex justify-content-center p-4 b-4 mt-3">
+      <div class="col-md-3 .col-sm-10">
+        <div class="card text-center">
+          <div class="card-header">
+            <div class="d-flex flex-fill">
+              <input class="form-control me-2" type="search" placeholder="Search" aria-label="Search" name="search">
+              <button class="btn btn-outline-success" type="submit">Search</button>
+            </div>
+          </div>
+          <div class="accordion" id="accordionPanelsStayOpenExample">
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="panelsStayOpen-headingTwo">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#panelsStayOpen-collapseTwo" aria-expanded="false"
+                        aria-controls="panelsStayOpen-collapseTwo">
+                  AUTHORS
+                </button>
+              </h2>
+              <div id="panelsStayOpen-collapseTwo" class="accordion-collapse collapse"
+                   aria-labelledby="panelsStayOpen-headingTwo">
+                <div class="accordion-body">
+                  <ul class="list-group">
+                    <div class="input-group mb-3" th:each="author : ${authors}">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" th:value="${author}" id="AuthorIdInput"
+                               name="authorName">
+                      </div>
+                      <li class="form-control text-primary" th:text="@{'@' + ${author}}"></li>
+                    </div>
+
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="panelsStayOpen-headingThree">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#panelsStayOpen-collapseThree" aria-expanded="false"
+                        aria-controls="panelsStayOpen-collapseThree">
+                  TAGS
+                </button>
+              </h2>
+              <div id="panelsStayOpen-collapseThree" class="accordion-collapse collapse"
+                   aria-labelledby="panelsStayOpen-headingThree">
+                <div class="accordion-body">
+                  <ul class="list-group">
+                    <div class="input-group mb-3" th:each="tag : ${tags}">
+                      <div class="form-check">
+                        <input class="form-check-input" type="checkbox" th:value="${tag.getName()}" id="TagIdInput"
+                               name="tagName">
+                      </div>
+                      <li class="form-control text-primary" th:text="@{'#' + ${tag.getName()}}"></li>
+                    </div>
+                  </ul>
+                </div>
+              </div>
+            </div>
+            <div class="accordion-item">
+              <h2 class="accordion-header" id="panelsStayOpen-headingFour">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                        data-bs-target="#panelsStayOpen-collapseFour" aria-expanded="false"
+                        aria-controls="panelsStayOpen-collapseFour">
+                  SORT BY
+                </button>
+              </h2>
+              <div id="panelsStayOpen-collapseFour" class="accordion-collapse collapse"
+                   aria-labelledby="panelsStayOpen-headingFour">
+                <div class="accordion-body">
+
+                  <div class="form-check form-switch ">
+                    <input class="form-check-input" type="radio" role="switch" id="PublishedDateCheckChecked" name="sortBy" value="publishedDate">
+                    <label class="form-check-label" for="PublishedDateCheckChecked">Sort by Published Date</label>
+                  </div>
+                  <div class="form-check form-switch ">
+                    <input class="form-check-input" type="radio" role="switch" id="TitleCheckChecked" name="sortBy" value="title">
+                    <label class="form-check-label" for="TitleCheckChecked">Sort by Title</label>
+                  </div>
+                  <div class="form-check form-switch ">
+                    <input class="form-check-input" type="radio" role="switch" id="AuthorCheckChecked" name="sortBy" value="author">
+                    <label class="form-check-label" for="AuthorCheckChecked">Sort by Author</label>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+
+          </div>
+          <div class="card-footer text-muted">Welcome to Shyam Solutions Private Limited</div>
+        </div>
+    </form>
+      </div>
+
+      <div class="col-md-8 .col-sm-10">
+        <div th:text="${resultQuery}"></div>
+        <div class="row d-flex justify-content-center p-4 b-4 mt-1" th:each="post : ${posts}">
+          <div class="col-12">
+            <div class="card text-center">
+              <div class="card-header">
+                Article by : <a class="text-danger" th:text="${post.getAuthor()}"
+                  th:href="@{'/posts/read?authorName=' + ${post.getAuthor()}}"></a>
+              </div>
+              <div class="card-body">
+                <h5 class="card-title" th:text="${post.getTitle()}"></h5>
+                <p class="card-text" th:text="${post.getExcerpt()}"></p>
+                <!--          <p class="card-text text-primary" th:text="${post.getTagsToString()}"></p>-->
+                <span th:each="tag : ${post.getTags()}"><a class="car-text text-primary text-decoration-none"
+                    th:href="@{'/posts/read?tagName=' + ${tag.getName()}}" th:text="@{'#' + ${tag.getName()}}"> </a> </span>
+                <br>
+                <a th:href="@{'/posts/read/' + ${post.getId()}}" class="btn btn-primary mt-3">Read Full Article</a>
+              </div>
+              <div class="card-footer text-muted" th:text="${post.getPublishedDate()}">
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row d-flex justify-content-center">
+          <div class="col-md-6 .col-sm-10">
+            <nav aria-label="Page navigation example">
+              <ul class="pagination">
+                <a class="btn btn-outline-primary" th:href="${startUrl}">Next</a>
+                <a class="btn btn-outline-primary" th:href="${prevUrl}">Prev</a>
+              </ul>
+              </form>
+            </nav>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </section>
+</body>
+
+</html>

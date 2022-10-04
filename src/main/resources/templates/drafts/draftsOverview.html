@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html th:replace="commons/base::Layout(~{::section})">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<section>
+  <div class="row d-flex justify-content-center p-4 b-4 mt-1" th:each="draft : ${drafts}">
+    <div class="col-md-6 .col-sm-10">
+      <div class="card text-center">
+        <div class="card-header">
+          Article by : <span class="text-danger" th:text="${draft.getAuthor()}"></span>
+        </div>
+        <div class="card-body">
+          <h5 class="card-title" th:text="${draft.getTitle()}"></h5>
+          <p class="card-text" th:text="${draft.getExcerpt()}"></p>
+          <p class="card-text text-primary" th:text="${draft.getTagsToString()}"></p>
+          <a th:href="@{'/posts/read/' + ${draft.getId()}}" class="btn btn-primary">Read Full Article</a>
+        </div>
+        <div class="card-footer text-muted" th:text="${draft.getPublishedDate()}">
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="row d-flex justify-content-center">
+    <div class="col-md-6 .col-sm-10">
+      <nav aria-label="Page navigation example">
+          <ul class="pagination">
+            <form action="/drafts/read">
+                <input type="hidden" name="start" th:value="${start - limit * 2}">
+                <input type="hidden" name="limit" th:value="${limit}">
+              <li class="page-item"><button class="page-link" href="#">Prev</button></li>
+            </form>
+            <form action="/drafts/read">
+              <input type="hidden" name="start" th:value="${start}">
+              <input type="hidden" name="limit" th:value="${limit}">
+              <li class="page-item"><button class="page-link" href="#">Next</button></li>
+            </form>
+          </ul>
+        </form>
+      </nav>
+    </div>
+  </div>
+</section>
+</body>
+</html>

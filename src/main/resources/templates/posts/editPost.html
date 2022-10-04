@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html th:replace="commons/base::Layout(~{::section})">
+  <head>
+    <meta charset="ISO-8859-1" />
+    <title>create your Post</title>
+  </head>
+  <body>
+    <section>
+      <div class="row d-flex justify-content-center p-4 b-4 mt-1">
+        <div class="col-md-8 col-sm-12 border card p-2">
+          <form th:action="@{'/posts/update/' + ${post.getId()}}" method="post">
+            <div class="mb-3">
+              <label for="title" class="form-label">Your Title</label>
+              <input
+                type="text"
+                class="form-control"
+                id="title"
+                aria-describedby="title Help"
+                name="title"
+                th:value="${post.getTitle()}"
+                required
+              />
+              <div id="titleHelp" class="form-text">
+                The best programmer aren't identified by id
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="excerpt" class="form-label">Your Excerpt</label>
+              <input
+                type="text"
+                class="form-control"
+                id="excerpt"
+                aria-describedby="Excerpt Help"
+                name="excerpt"
+                th:value="${post.getExcerpt()}"
+
+                required
+              />
+              <div id="excerptHelp" class="form-text">
+                Programmers change the world to juristic park??
+              </div>
+            </div>
+            <div class="mb-3">
+              <label for="tags" class="form-label">Add your tags</label>
+              <div class="input-group flex-nowrap">
+                <span class="input-group-text" id="addon-wrapping">#</span>
+                <input
+                  id="tags"
+                  type="text"
+                  class="form-control"
+                  placeholder="#abc, #oops, #java, #servlet"
+                  aria-label="Tags"
+                  aria-describedby="Add Tags on posts"
+                  name="tags"
+                  th:value="${post.getTagsToString()}"
+                  required
+                />
+              </div>
+              <div id="tagsHelp" class="form-text">
+                Tags are started by "#" and separated by space or , (comma)
+              </div>
+            </div>
+            <div class="input-group mb-3">
+              <span class="input-group-text">Post Area</span>
+              <textarea
+                class="form-control"
+                aria-label="With textarea"
+                rows="8"
+                name="content"
+                th:value="${post.getContent()}"
+                th:text="${post.getContent()}"
+                required
+              ></textarea>
+            </div>
+            <div class="input-group mb-3">
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Author Name"
+                aria-label="Username"
+                name="author"
+                th:value="${post.getAuthor()}"
+                required
+              />
+              <span class="input-group-text">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="16"
+                  height="16"
+                  fill="currentColor"
+                  class="bi bi-calendar-check"
+                  viewBox="0 0 16 16"
+                >
+                  <path
+                    d="M10.854 7.146a.5.5 0 0 1 0 .708l-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 1 1 .708-.708L7.5 9.793l2.646-2.647a.5.5 0 0 1 .708 0z"
+                  />
+                  <path
+                    d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"
+                  />
+                </svg>
+              </span>
+              <input
+                type="text"
+                class="form-control"
+                placeholder="Server"
+                aria-label="Server"
+                disabled
+                th:value="${post.getCreatedAt()}"
+              />
+            </div>
+
+            <div class="form-check form-switch ">
+              <input class="form-check-input" type="checkbox" role="switch" id="flexSwitchCheckChecked" name="draft" th:checked="${post.isPublished()}">
+              <label class="form-check-label" for="flexSwitchCheckChecked">Checked switch checkbox input</label>
+            </div>
+            <div id="draftHelp" class="form-text">
+              Your post can be edited later and shown to public once you're done with the draft .
+            </div>
+            <button type="submit" class="btn btn-primary">Submit</button>
+          </form>
+        </div>
+      </div>
+    </section>
+  </body>
+</html>

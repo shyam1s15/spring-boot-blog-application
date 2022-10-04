@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html th:replace="commons/base::Layout(~{::section})">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Sign up</title>
+</head>
+
+<body>
+    <section>
+
+        <div class="row d-flex justify-content-center p-4 b-4 mt-1">
+            <div class="col-md-6 col-sm-12 border card p-2">
+                <div class="" th:text="${error}"></div>
+                <form action="/signup" method="post">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="username" placeholder="Enter your username"
+                            name="username" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" placeholder="Enter your password"
+                            name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" placeholder="Enter your Email"
+                               name="email" required>
+                    </div>
+                    <div class="row d-flex">
+                        <div class="col-md-6 .col-sm-10">
+                            <nav aria-label="Page navigation example">
+                                <ul class="pagination">
+                                    <button class="btn btn-outline-success" type="submit">Signup</button>
+                                    <div class="page-item ms-2 me-2"> - or - </div>
+                                    <a href="/login" class="btn btn-outline-primary">Login</a>
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </section>
+</body>
+
+</html>

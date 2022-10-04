@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html th:replace="commons/base::Layout(~{::section})">
+<head>
+    <meta charset="UTF-8">
+    <title>All Authors</title>
+</head>
+<body>
+
+<section>
+    <div class="row d-flex justify-content-center p-4 b-4 mt-1">
+        <div class="col-md-8 col-sm-12  border card p-2">
+            <ul class="list-group">
+                <li class="list-group-item active" aria-current="true">Playground of Authors</li>
+                <div class="input-group mb-3" th:each="author : ${authors}">
+                    <span class="input-group-text" id="basic-addon1">@</span>
+                    <li class="form-control"><a th:href="@{'/posts/read?authorName=' + ${author}}" class="text-primary" th:text="@{'@' + ${author}}"></a></li>
+                </div>
+            </ul>
+        </div>
+    </div>
+</section>
+</body>
+</html>

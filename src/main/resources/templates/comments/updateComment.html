@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html th:replace="commons/base::Layout(~{::section})">
+<head>
+    <meta charset="UTF-8">
+    <title>Update Comment</title>
+</head>
+<body>
+<section>
+    <div class="row d-flex justify-content-center p-4 b-4 mt-1">
+        <div class="col-md-6 .col-sm-10">
+            <div class="card">
+                <div class="card-header">
+                    Created at <span class="text-danger" th:text="${comment.getCreatedAt()}">  </span>
+                </div>
+                <div class="card-body">
+                    <form th:action="@{'/comment/update/' + ${comment.getId()}}" method="post">
+                        <input type="hidden" name="postId" th:value="${comment.getPostId().getId()}">
+                        <div class="input-group mb-3">
+                  <textarea class="form-control" aria-label="With textarea" rows="2"
+                            placeholder="your beautiful comment here!" name="comment" th:value="${comment.getComment()}" th:text="${comment.getComment()}"></textarea>
+                        </div>
+
+                        <div class="input-group mb-3">
+                  <span class="input-group-text">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                         class="bi bi-person-hearts" viewBox="0 0 16 16">
+                      <path fill-rule="evenodd"
+                            d="M11.5 1.246c.832-.855 2.913.642 0 2.566-2.913-1.924-.832-3.421 0-2.566ZM9 5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm-9 8c0 1 1 1 1 1h10s1 0 1-1-1-4-6-4-6 3-6 4Zm13.5-8.09c1.387-1.425 4.855 1.07 0 4.277-4.854-3.207-1.387-5.702 0-4.276ZM15 2.165c.555-.57 1.942.428 0 1.711-1.942-1.283-.555-2.281 0-1.71Z" />
+                    </svg>
+                  </span>
+                            <input type="text" class="form-control" placeholder="Name" aria-label="Author Name" name="name" th:value="${comment.getName()}" required>
+                            <span class="input-group-text">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                         class="bi bi-envelope-check-fill" viewBox="0 0 16 16">
+                      <path
+                              d="M.05 3.555A2 2 0 0 1 2 2h12a2 2 0 0 1 1.95 1.555L8 8.414.05 3.555ZM0 4.697v7.104l5.803-3.558L0 4.697ZM6.761 8.83l-6.57 4.026A2 2 0 0 0 2 14h6.256A4.493 4.493 0 0 1 8 12.5a4.49 4.49 0 0 1 1.606-3.446l-.367-.225L8 9.586l-1.239-.757ZM16 4.697v4.974A4.491 4.491 0 0 0 12.5 8a4.49 4.49 0 0 0-1.965.45l-.338-.207L16 4.697Z" />
+                      <path
+                              d="M16 12.5a3.5 3.5 0 1 1-7 0 3.5 3.5 0 0 1 7 0Zm-1.993-1.679a.5.5 0 0 0-.686.172l-1.17 1.95-.547-.547a.5.5 0 0 0-.708.708l.774.773a.75.75 0 0 0 1.174-.144l1.335-2.226a.5.5 0 0 0-.172-.686Z" />
+                    </svg>
+                  </span>
+                            <input type="email" class="form-control" placeholder="Email" aria-label="Email" name="email" th:value="${comment.getEmail()}" required>
+                        </div>
+                        <button type="submit" class="btn btn-success">Submit</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+</body>
+</html>
