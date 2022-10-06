@@ -1,4 +1,6 @@
 package com.example.crud_app.model;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import javax.persistence.*;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -16,6 +18,7 @@ public class Post {
     private String content;
     private String author;
 
+    @JsonIgnore
     @ManyToMany(fetch = FetchType.EAGER, cascade = {
             CascadeType.PERSIST
     })
@@ -29,6 +32,7 @@ public class Post {
     @Column(name = "updated_at", columnDefinition = "TIMESTAMP")
     private LocalDateTime updatedAt;
 
+    @JsonIgnore
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "postId")
     private List<Comment> comments;
 

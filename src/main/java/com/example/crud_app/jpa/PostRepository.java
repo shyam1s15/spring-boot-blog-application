@@ -69,7 +69,8 @@ public interface PostRepository extends PagingAndSortingRepository<Post, Integer
                                    @Param("authorNames") String[] authorNames,
                                    @Param("tagNames") String[] tagNames, Pageable pageable);
 
-    List<Post> findByIsPublished(Boolean isPublished, Pageable pageable);
+    @Query("select post from Post post where post.isPublished=:isPublished")
+    List<Post> findPosts(Boolean isPublished, Pageable pageable);
 
     @Query("select post from Post post where post.isPublished = :isPublished and post.author in :authorNames")
     List<Post> findByAuthors(@Param("authorNames") List<String> authorNames, Boolean isPublished);

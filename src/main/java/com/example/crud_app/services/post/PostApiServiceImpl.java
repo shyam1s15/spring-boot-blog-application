@@ -1,8 +1,11 @@
 package com.example.crud_app.services.post;
 
+import com.example.crud_app.exceptions.data_not_found.DataNotFoundApiException;
 import com.example.crud_app.exceptions.data_not_found.DataNotFoundException;
 import com.example.crud_app.exceptions.insufficient_access.InsufficientAccessException;
+import com.example.crud_app.exceptions.other.OtherApiException;
 import com.example.crud_app.exceptions.other.OtherException;
+import com.example.crud_app.exceptions.page_not_found.PageNotFoundApiException;
 import com.example.crud_app.jpa.PostRepository;
 import com.example.crud_app.jpa.TagRepository;
 import com.example.crud_app.jpa.UserRepository;
@@ -14,35 +17,49 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.ui.Model;
+
 import javax.servlet.http.HttpServletRequest;
-import java.text.SimpleDateFormat;
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @Service
-public class PostServiceImpl implements PostService{
+public class PostApiServiceImpl implements PostApiService{
     public static final String TITLE = "title";
     public static final String PUBLISHED_DATE = "publishedDate";
     public static final String AUTHOR = "author";
-    private PostRepository postRepository;
-    private TagRepository tagRepository;
-
     @Autowired
     public void setUserRepository(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
     private UserRepository userRepository;
 
-    @Autowired
-    public void setPostRepository(PostRepository postRepository) {
-        this.postRepository = postRepository;
+    @Override
+    public ResponseEntity<Object> index() {
+        throw new PageNotFoundApiException();
+    }
+
+    @Override
+    public ResponseEntity<Object> getPostPage(Model model) {
+        throw new PageNotFoundApiException();
+    }
+
+
+    public Tag findOrCreateTag(String rowTag) {
+        Tag tag = tagRepository.findByName(rowTag);
+        if (tag == null) {
+            Tag newTag = new Tag();
+            newTag.setName(rowTag);
+            newTag.setCreatedAt(LocalDateTime.now());
+            newTag.setUpdatedAt(LocalDateTime.now());
+            return newTag;
+        }
+        return tag;
     }
 
     @Autowired
@@ -50,6 +67,14 @@ public class PostServiceImpl implements PostService{
         this.tagRepository = tagRepository;
     }
 
+    private TagRepository tagRepository;
+
+    @Autowired
+    public void setPostRepository(PostRepository postRepository) {
+        this.postRepository = postRepository;
+    }
+
+    private PostRepository postRepository;
     private Pageable getPageableOfPosts(String sortBy, int offset, int pageSize){
         if (sortBy != null) {
             if (sortBy.equalsIgnoreCase(TITLE)) {
@@ -65,6 +90,7 @@ public class PostServiceImpl implements PostService{
             return PageRequest.of(offset, pageSize);
         }
     }
+
     private List<Post> postHelperFinder(String search,
                                         String[] tagNames, String[] authorNames,
                                         Pageable pageable){
@@ -95,56 +121,40 @@ public class PostServiceImpl implements PostService{
         }
         return null;
     }
-
-    @Override
-    public Model getDraftsPosts(Model model, HttpServletRequest request) {
-        int start, prev, limit = 2;
-        int pagableIndex = 0;
-        if (request.getParameter("start") != null) {
-            start = Math.max(Integer.parseInt(request.getParameter("start")), 0);
-            limit = Integer.parseInt(request.getParameter("limit"));
-            pagableIndex = start / limit;
-            model.addAttribute("start", (start + limit));
-            model.addAttribute("limit", limit);
-        } else {
-            model.addAttribute("start", (limit));
-            model.addAttribute("limit", limit);
+    private String getResultsQuery(String search, String[] tagNames, String[] authorNames){
+        StringBuilder result = new StringBuilder();
+        if (search == null && tagNames == null && authorNames == null){
+            result = new StringBuilder("Result Showing for All Posts");
+            return result.toString();
+        } else{
+            result = new StringBuilder("Result Showing for : ");
         }
+        result.append((search != null) ? search : "").append(" ");
+        if (tagNames != null)
+            for (String tag: tagNames) result.append(tag).append(" ");
+        if (authorNames != null)
+            for (String author: authorNames) result.append(author).append(" ");
 
-        Pageable postPageable = PageRequest.of(pagableIndex, limit);
-        List<Post> drafts = postRepository.findPosts(false, postPageable);
-        model.addAttribute("drafts", drafts);
-        return model;
+        return result.toString();
     }
-
-    public Tag findOrCreateTag(String rowTag) {
-        Tag tag = tagRepository.findByName(rowTag);
-        if (tag == null) {
-            Tag newTag = new Tag();
-            newTag.setName(rowTag);
-            newTag.setCreatedAt(LocalDateTime.now());
-            newTag.setUpdatedAt(LocalDateTime.now());
-            return newTag;
+    private String getPaginationUrl(String search, String[] tagNames, String[] authorNames, String sortBy){
+        StringBuilder url = new StringBuilder();
+        if (search == null && tagNames == null && authorNames == null && sortBy == null){
+            url = new StringBuilder("");
+            return url.toString();
         }
-        return tag;
+        url.append((search != null) ? ("&search="+search) : "");
+        if (tagNames != null)
+            for (String tag: tagNames) url.append("&").append("tagName=").append(tag);
+        if (authorNames != null)
+            for (String author: authorNames) url.append("&").append("authorName=").append(author);
+        if (sortBy != null)
+            url.append("&sortBy=").append(sortBy);
+        return url.toString();
     }
 
     @Override
-    public String index() {
-        return null;
-    }
-
-    @Override
-    public Model getPostPage(Model model) {
-        String date = new SimpleDateFormat("dd-MM-yyyy").format(new Date());
-        model.addAttribute("date", date);
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        model.addAttribute("loggedUser", auth.getName());
-        return model;
-    }
-
-    @Override
-    public void savePostPageData(HttpServletRequest request) {
+    public ResponseEntity<Object> savePostPageData(HttpServletRequest request) {
         Post post = new Post();
         post.setTitle(request.getParameter("title").trim());
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -182,44 +192,16 @@ public class PostServiceImpl implements PostService{
         }
         post.setTags(tags);
         postRepository.save(post);
+        return new ResponseEntity<>("Post Saved Successfully", HttpStatus.OK);
     }
 
-    private String getResultsQuery(String search, String[] tagNames, String[] authorNames){
-        StringBuilder result = new StringBuilder();
-        if (search == null && tagNames == null && authorNames == null){
-            result = new StringBuilder("Result Showing for All Posts");
-            return result.toString();
-        } else{
-            result = new StringBuilder("Result Showing for : ");
-        }
-        result.append((search != null) ? search : "").append(" ");
-        if (tagNames != null)
-            for (String tag: tagNames) result.append(tag).append(" ");
-        if (authorNames != null)
-            for (String author: authorNames) result.append(author).append(" ");
-
-        return result.toString();
-    }
-    private String getPaginationUrl(String search, String[] tagNames, String[] authorNames, String sortBy){
-        StringBuilder url = new StringBuilder();
-        if (search == null && tagNames == null && authorNames == null && sortBy == null){
-            url = new StringBuilder("");
-            return url.toString();
-        }
-        url.append((search != null) ? ("&search="+search) : "");
-        if (tagNames != null)
-            for (String tag: tagNames) url.append("&").append("tagName=").append(tag);
-        if (authorNames != null)
-            for (String author: authorNames) url.append("&").append("authorName=").append(author);
-        if (sortBy != null)
-            url.append("&sortBy=").append(sortBy);
-        return url.toString();
-    }
     @Override
-    public Model readAllPostsWithParams(Model model, HttpServletRequest request, String[] tagNames,
-                                        String[] authorNames, String search, String sortBy, String start,
-                                        String limit) {
-        model.addAttribute("resultQuery", getResultsQuery(search, tagNames, authorNames));
+    public ResponseEntity<?> readAllPostsWithParams(
+            HttpServletRequest request,
+            String[] tagNames, String[] authorNames,
+            String search, String sortBy, String start, String limit) {
+        Map<String, Object> responseMapModel = new HashMap<>();
+        responseMapModel.put("resultQuery", getResultsQuery(search, tagNames, authorNames));
         int offset = Integer.parseInt(start == null ? "0" : start);
         int pageSize = Integer.parseInt(limit == null ? "10" : limit);
         int paginationIndex = offset / pageSize;
@@ -227,35 +209,34 @@ public class PostServiceImpl implements PostService{
         Pageable pageable = getPageableOfPosts(sortBy, paginationIndex, pageSize);
         List<Post> posts = null;
 
-        model.addAttribute("start", offset + pageSize);
-        model.addAttribute("limit", pageSize);
+        responseMapModel.put("start", offset + pageSize);
+        responseMapModel.put("limit", pageSize);
 
-        model.addAttribute("startUrl", "/posts/read?start="+Integer.toString(offset+pageSize ) + "&limit=" + Integer.toString(pageSize) + getPaginationUrl(search, tagNames, authorNames, sortBy));
-        model.addAttribute("prevUrl", "/posts/read?start="+Integer.toString( offset-pageSize ) + "&limit=" + Integer.toString(pageSize) + getPaginationUrl(search, tagNames, authorNames, sortBy));
+        responseMapModel.put("startUrl", "/posts/read?start="+Integer.toString(offset+pageSize ) + "&limit=" + Integer.toString(pageSize) + getPaginationUrl(search, tagNames, authorNames, sortBy));
+        responseMapModel.put("prevUrl", "/posts/read?start="+Integer.toString( offset-pageSize ) + "&limit=" + Integer.toString(pageSize) + getPaginationUrl(search, tagNames, authorNames, sortBy));
         List<String> authors = (List<String>) postRepository.getAuthors(true);
-        model.addAttribute("authors", authors);
+        responseMapModel.put("authors", authors);
 
         List<Tag> tags = (List<Tag>) tagRepository.findAll();
-        model.addAttribute("tags", tags);
+        responseMapModel.put("tags", tags);
         try {
             posts = postHelperFinder(search, tagNames, authorNames, pageable);
-//            posts = postRepository.findAllByParams( search == null ? "" : search, authorNames, tagNames, pageable);
             if (posts == null || posts.isEmpty()){
-                throw new DataNotFoundException();
+                throw new DataNotFoundApiException();
             }
         } catch (DataNotFoundException exception){
-            throw new DataNotFoundException();
+            throw new DataNotFoundApiException();
         }
         catch (Exception e) {
             e.printStackTrace();
-            throw new OtherException();
+            throw new OtherApiException();
         }
-        model.addAttribute("posts", posts);
-        return model;
+        responseMapModel.put("posts", posts);
+        return ResponseEntity.ok(responseMapModel);
     }
 
     @Override
-    public Model getFilteredResultsPage(HttpServletRequest request, Model model) {
+    public ResponseEntity<Object> getFilteredResultsPage(HttpServletRequest request, Model model) {
         if (request.getParameter("filter").equalsIgnoreCase("authors")) {
             List<String> authors = postRepository.getAuthors(true);
             model.addAttribute("authors", authors);
@@ -263,16 +244,15 @@ public class PostServiceImpl implements PostService{
             List<Tag> tags = (List<Tag>) tagRepository.findAll();
             model.addAttribute("tags", tags);
         }
-        return model;
+        return new ResponseEntity<>(model, HttpStatus.OK);
     }
 
     @Override
-    public Model readPostDetail(int id, Model model) {
+    public ResponseEntity<Object> readPostDetail(int id, Model model) {
         Optional<Post> optionalPost = postRepository.findById(id);
         Post post;
         if (optionalPost.isEmpty()) {
-            throw new DataNotFoundException();
-//            return "commons/test";
+            throw new DataNotFoundApiException();
         }
         post = optionalPost.get();
 
@@ -280,37 +260,16 @@ public class PostServiceImpl implements PostService{
         Optional<User> optionalUser = userRepository.findByUsername( auth.getName() );
         optionalUser.ifPresent(user -> model.addAttribute("authenticatedUser", user));
         model.addAttribute("post", post);
-        return model;
+        return ResponseEntity.ok(model);
     }
 
     @Override
-    public Model getPostEditPage(int postId, Model model) {
-        Optional<Post> optional = postRepository.findById(postId);
-        if (optional.isPresent()) {
-            Post post = optional.get();
-            model.addAttribute("post", post);
-
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            Optional<User> optionalUser = userRepository.findByUsername( auth.getName() );
-            if (optionalUser.isEmpty()) {
-                throw new InsufficientAccessException();
-            }
-            User user = optionalUser.get();
-            if (user.getRole().equals(Constants.AUTHOR) &&
-                    user.getUsername().equals(post.getAuthor())) {
-                return model;
-            } else if (user.getRole().equals(Constants.ADMIN)) {
-                return model;
-            } else{
-                throw new InsufficientAccessException();
-            }
-        } else {
-            throw new DataNotFoundException();
-        }
+    public ResponseEntity<Object> getPostEditPage(int postId, Model model) {
+        throw new PageNotFoundApiException();
     }
 
     @Override
-    public void updatePostPageData(int postId, HttpServletRequest request) {
+    public ResponseEntity<Object> updatePostPageData(int postId, HttpServletRequest request) {
         Optional<Post> optionalPost = postRepository.findById(postId);
         if (optionalPost.isPresent()) {
             Post post = optionalPost.get();
@@ -337,28 +296,16 @@ public class PostServiceImpl implements PostService{
                 }
             }
             post.setTags(tags);
-
-            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-            Optional<User> optionalUser = userRepository.findByUsername( auth.getName() );
-            if (optionalUser.isEmpty()) {
-                throw new InsufficientAccessException();
-            }
-
-            User user = optionalUser.get();
-            if (user.getRole().equals(Constants.AUTHOR) &&
-                    user.getUsername().equals(post.getAuthor())) {
-                tagRepository.saveAll(tags);
-                postRepository.save(post);
-            } else if (user.getRole().equals(Constants.ADMIN)) {
-                postRepository.delete(post);
-            } else{
-                throw new InsufficientAccessException();
-            }
+            tagRepository.saveAll(tags);
+            postRepository.save(post);
+            return new ResponseEntity<>("Post updated successfully", HttpStatus.OK);
+        } else{
+            throw new DataNotFoundApiException();
         }
     }
 
     @Override
-    public void deletePost(int postId) {
+    public ResponseEntity<Object> deletePost(int postId) {
         Optional<Post> optionalPost = postRepository.findById(postId);
         if (optionalPost.isPresent()){
             Post post = optionalPost.get();
@@ -373,8 +320,10 @@ public class PostServiceImpl implements PostService{
             if (user.getRole().equals(Constants.AUTHOR) &&
                     user.getUsername().equals(post.getAuthor())) {
                 postRepository.delete(post);
+                return new ResponseEntity<>("Post deleted successfully", HttpStatus.OK);
             } else if (user.getRole().equals(Constants.ADMIN)) {
                 postRepository.delete(post);
+                return new ResponseEntity<>("Post deleted successfully", HttpStatus.OK);
             } else{
                 throw new InsufficientAccessException();
             }
@@ -382,5 +331,25 @@ public class PostServiceImpl implements PostService{
             throw new DataNotFoundException();
         }
     }
-}
 
+    @Override
+    public ResponseEntity<Object> getDraftsPosts(Model model, HttpServletRequest request) {
+        int start, prev, limit = 2;
+        int pagableIndex = 0;
+        if (request.getParameter("start") != null) {
+            start = Math.max(Integer.parseInt(request.getParameter("start")), 0);
+            limit = Integer.parseInt(request.getParameter("limit"));
+            pagableIndex = start / limit;
+            model.addAttribute("start", (start + limit));
+            model.addAttribute("limit", limit);
+        } else {
+            model.addAttribute("start", (limit));
+            model.addAttribute("limit", limit);
+        }
+
+        Pageable postPageable = PageRequest.of(pagableIndex, limit);
+        List<Post> drafts = postRepository.findPosts(false, postPageable);
+        model.addAttribute("drafts", drafts);
+        return ResponseEntity.ok(model);
+    }
+}

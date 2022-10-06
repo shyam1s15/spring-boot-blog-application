@@ -1,7 +1,10 @@
 package com.example.crud_app.services.comment;
 
+import com.example.crud_app.exceptions.data_not_found.DataNotFoundApiException;
 import com.example.crud_app.exceptions.data_not_found.DataNotFoundException;
+import com.example.crud_app.exceptions.insufficient_access.InsufficientAccessApiException;
 import com.example.crud_app.exceptions.insufficient_access.InsufficientAccessException;
+import com.example.crud_app.exceptions.page_not_found.PageNotFoundException;
 import com.example.crud_app.jpa.CommentRepository;
 import com.example.crud_app.jpa.PostRepository;
 import com.example.crud_app.jpa.UserRepository;
@@ -10,6 +13,8 @@ import com.example.crud_app.model.Post;
 import com.example.crud_app.model.User;
 import com.example.crud_app.utils.Constants;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -20,7 +25,7 @@ import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Service
-public class CommentServiceImpl implements CommentService{
+public class CommentApiServiceImpl implements CommentApiService {
     private CommentRepository commentRepository;
     private PostRepository postRepository;
 
@@ -30,6 +35,7 @@ public class CommentServiceImpl implements CommentService{
     }
 
     UserRepository userRepository;
+
     @Autowired
     public void setCommentRepository(CommentRepository commentRepository) {
         this.commentRepository = commentRepository;
@@ -41,75 +47,56 @@ public class CommentServiceImpl implements CommentService{
     }
 
     @Override
-    public void createComment(int postId, HttpServletRequest request) {
-            Optional<Post> postOptional = postRepository.findById(postId);
-            if (postOptional.isPresent()) {
-                Post post = postOptional.get();
-                Comment comment = new Comment();
-                comment.setName(request.getParameter("name"));
-                comment.setEmail(request.getParameter("email"));
-                comment.setComment(request.getParameter("comment"));
-                comment.setCreatedAt(LocalDateTime.now());
-                comment.setUpdatedAt(LocalDateTime.now());
-                comment.setPostId(post);
-                commentRepository.save(comment);
+    public ResponseEntity<Object> createComment(int postId, HttpServletRequest request) {
+        Optional<Post> postOptional = postRepository.findById(postId);
+        if (postOptional.isPresent()) {
+            Post post = postOptional.get();
+            Comment comment = new Comment();
+            comment.setName(request.getParameter("name"));
+            comment.setEmail(request.getParameter("email"));
+            comment.setComment(request.getParameter("comment"));
+            comment.setCreatedAt(LocalDateTime.now());
+            comment.setUpdatedAt(LocalDateTime.now());
+            comment.setPostId(post);
+            commentRepository.save(comment);
+            return new ResponseEntity<>("Comment Created Successfully with ID: " + comment.getId(), HttpStatus.OK);
+        } else {
+            throw new DataNotFoundException();
+        }
+    }
+
+    @Override
+    public ResponseEntity<Object> deleteComment(int commentId, HttpServletRequest request) {
+        Optional<Comment> optionalComment = commentRepository.findById(commentId);
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        Optional<User> optionalUser = userRepository.findByUsername(auth.getName());
+
+        if (optionalComment.isPresent()) {
+            Comment comment = optionalComment.get();
+            User user = optionalUser.get();
+            Post post = comment.getPostId();
+            if (user.getRole().equals(Constants.AUTHOR) &&
+                    user.getUsername().equals(post.getAuthor())) {
+                commentRepository.deleteById(commentId);
+                return new ResponseEntity<>("Post deleted successfully with id " + commentId, HttpStatus.OK);
+            } else if (user.getRole().equals(Constants.ADMIN)) {
+                commentRepository.deleteById(commentId);
+                return new ResponseEntity<>("Post deleted successfully with id " + commentId, HttpStatus.OK);
             } else {
-                throw new DataNotFoundException();
+                throw new InsufficientAccessApiException();
             }
-    }
-
-    @Override
-    public int deleteComment(int commentId, HttpServletRequest request) {
-        Optional<Comment> optionalComment = commentRepository.findById(commentId);
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Optional<User> optionalUser = userRepository.findByUsername( auth.getName() );
-
-        if (optionalComment.isPresent()){
-            Comment comment = optionalComment.get();
-            User user = optionalUser.get();
-            Post post = comment.getPostId();
-            if (user.getRole().equals(Constants.AUTHOR) &&
-                    user.getUsername().equals(post.getAuthor())) {
-                commentRepository.deleteById(commentId);
-                return Integer.parseInt(request.getParameter("postId"));
-            } else if (user.getRole().equals(Constants.ADMIN)) {
-                commentRepository.deleteById(commentId);
-                return Integer.parseInt(request.getParameter("postId"));
-            } else{
-                throw new InsufficientAccessException();
-            }
-        } else{
-            throw new DataNotFoundException();
+        } else {
+            throw new DataNotFoundApiException();
         }
     }
 
     @Override
-    public Model getUpdateCommentPage(int commentId, Model model) {
-        Optional<Comment> optionalComment = commentRepository.findById(commentId);
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        Optional<User> optionalUser = userRepository.findByUsername( auth.getName() );
-
-        if (optionalComment.isPresent()){
-            Comment comment = optionalComment.get();
-            model.addAttribute("comment", comment);
-            User user = optionalUser.get();
-            Post post = comment.getPostId();
-            if (user.getRole().equals(Constants.AUTHOR) &&
-                    user.getUsername().equals(post.getAuthor())) {
-                return model;
-            } else if (user.getRole().equals(Constants.ADMIN)) {
-                return model;
-            } else{
-                throw new InsufficientAccessException();
-            }
-
-        }else {
-            throw new DataNotFoundException();
-        }
+    public ResponseEntity<Object> getUpdateCommentPage(int commentId, Model model) {
+        throw new PageNotFoundException();
     }
 
     @Override
-    public int saveUpdatedComment(int commentId, HttpServletRequest request) {
+    public ResponseEntity<Object> saveUpdatedComment(int commentId, HttpServletRequest request) {
         Optional<Comment> optionalComment = commentRepository.findById(commentId);
         Comment comment = null;
         if (optionalComment.isPresent()) {
@@ -134,11 +121,11 @@ public class CommentServiceImpl implements CommentService{
             } else if (user.getRole().equals(Constants.ADMIN)) {
                 commentRepository.save(comment);
             } else{
-                throw new InsufficientAccessException();
+                throw new InsufficientAccessApiException();
             }
         }else {
-            throw new DataNotFoundException();
+            throw new DataNotFoundApiException();
         }
-        return comment.getPostId().getId();
+        return new ResponseEntity<>("Comment Saved Successfully", HttpStatus.OK);
     }
 }

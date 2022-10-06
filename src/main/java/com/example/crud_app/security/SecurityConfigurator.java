@@ -1,12 +1,10 @@
 package com.example.crud_app.security;
 import com.example.crud_app.utils.Constants;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.LogoutConfigurer;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -34,10 +32,22 @@ public class SecurityConfigurator{
                         .antMatchers("/comment/delete/**").hasAnyAuthority(Constants.ADMIN, Constants.AUTHOR)
                         .antMatchers("/comment/update/**").hasAnyAuthority(Constants.ADMIN, Constants.AUTHOR)
                         .antMatchers("/error").permitAll()
+
+                        .antMatchers("/api/").permitAll()
+                        .antMatchers("/api/posts/create/post").hasAnyAuthority(Constants.ADMIN, Constants.AUTHOR)
+                        .antMatchers("/api/posts/filter").permitAll()
+                        .antMatchers("/api/posts/update/**").hasAnyAuthority(Constants.ADMIN, Constants.AUTHOR)
+                        .antMatchers("/api/posts/delete/**").hasAnyAuthority(Constants.ADMIN, Constants.AUTHOR)
+                        .antMatchers("/api/posts/drafts/**").hasAnyAuthority(Constants.ADMIN, Constants.AUTHOR)
+                        .antMatchers("/api/drafts/read/**").hasAnyAuthority(Constants.ADMIN, Constants.AUTHOR)
+                        .antMatchers("/api/comment/create").permitAll()
+                        .antMatchers("/api/comment/delete/**").hasAnyAuthority(Constants.ADMIN, Constants.AUTHOR)
+                        .antMatchers("/api/comment/update/**").hasAnyAuthority(Constants.ADMIN, Constants.AUTHOR)
                 )
                 .formLogin()
                 .and()
-
+                .httpBasic()
+                .and()
                 .logout(LogoutConfigurer::permitAll)
                 .build();
     }
