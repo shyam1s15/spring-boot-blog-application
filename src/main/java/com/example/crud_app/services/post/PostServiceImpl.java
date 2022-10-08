@@ -4,6 +4,7 @@ import com.example.crud_app.exceptions.data_not_found.DataNotFoundException;
 import com.example.crud_app.exceptions.insufficient_access.InsufficientAccessException;
 import com.example.crud_app.exceptions.other.OtherException;
 import com.example.crud_app.jpa.PostRepository;
+import com.example.crud_app.jpa.PostSpecification;
 import com.example.crud_app.jpa.TagRepository;
 import com.example.crud_app.jpa.UserRepository;
 import com.example.crud_app.model.Post;
@@ -14,6 +15,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -65,45 +67,14 @@ public class PostServiceImpl implements PostService{
             return PageRequest.of(offset, pageSize);
         }
     }
-    private List<Post> postHelperFinder(String search,
-                                        String[] tagNames, String[] authorNames,
-                                        Pageable pageable){
-        // If page does not have any parameters, then return all posts with pagination
-        if (tagNames == null && authorNames == null && (search == null || search.isEmpty()))
-            return postRepository.findPosts(true, pageable);
-            // If page contains only search
-        else if (search != null && search.length() > 0 && tagNames == null && authorNames == null)
-            return postRepository.getBySearch(search, pageable);
-            // if page contains only author names
-        else if (authorNames != null && tagNames == null && (search == null || search.length() == 0))
-            return postRepository.getByAuthors(authorNames, pageable);
-            // if page contains only tag names
-        else if (tagNames != null && authorNames == null)
-            return postRepository.getByTags(tagNames, pageable);
-            // if page contains only search & author names
-        else if (search != null && authorNames != null && tagNames == null)
-            return postRepository.getByAuthorsAndSearch(authorNames, search, pageable);
-            // if page contains only search & tag names
-        else if (search != null && tagNames != null && authorNames == null)
-            return postRepository.getByTagsAndSearch(tagNames, search, pageable);
-            // if page contains only author names & tag names
-        else if (tagNames != null && authorNames != null && search == null)
-            return postRepository.getByAuthorsAndTags(authorNames, tagNames, pageable);
-            // if page contains All three search, tags and author names
-        else if (tagNames != null && authorNames != null && search != null){
-            return postRepository.getPostsByAllParams(true, search, authorNames, tagNames, pageable);
-        }
-        return null;
-    }
-
     @Override
     public Model getDraftsPosts(Model model, HttpServletRequest request) {
-        int start, prev, limit = 2;
-        int pagableIndex = 0;
+        int start, limit = 2;
+        int pageableIndex = 0;
         if (request.getParameter("start") != null) {
             start = Math.max(Integer.parseInt(request.getParameter("start")), 0);
             limit = Integer.parseInt(request.getParameter("limit"));
-            pagableIndex = start / limit;
+            pageableIndex = start / limit;
             model.addAttribute("start", (start + limit));
             model.addAttribute("limit", limit);
         } else {
@@ -111,7 +82,7 @@ public class PostServiceImpl implements PostService{
             model.addAttribute("limit", limit);
         }
 
-        Pageable postPageable = PageRequest.of(pagableIndex, limit);
+        Pageable postPageable = PageRequest.of(pageableIndex, limit);
         List<Post> drafts = postRepository.findPosts(false, postPageable);
         model.addAttribute("drafts", drafts);
         return model;
@@ -171,7 +142,7 @@ public class PostServiceImpl implements PostService{
         }
         post.setCreatedAt(LocalDateTime.now());
         post.setUpdatedAt(LocalDateTime.now());
-        List<Tag> tags = new ArrayList<Tag>();
+        List<Tag> tags = new ArrayList<>();
         String[] rowTags = request.getParameter("tags").split("[\\s,]+");
         for (String rowTag : rowTags) {
             rowTag = rowTag.replace("#", "").trim();
@@ -185,7 +156,7 @@ public class PostServiceImpl implements PostService{
     }
 
     private String getResultsQuery(String search, String[] tagNames, String[] authorNames){
-        StringBuilder result = new StringBuilder();
+        StringBuilder result;
         if (search == null && tagNames == null && authorNames == null){
             result = new StringBuilder("Result Showing for All Posts");
             return result.toString();
@@ -203,7 +174,7 @@ public class PostServiceImpl implements PostService{
     private String getPaginationUrl(String search, String[] tagNames, String[] authorNames, String sortBy){
         StringBuilder url = new StringBuilder();
         if (search == null && tagNames == null && authorNames == null && sortBy == null){
-            url = new StringBuilder("");
+            url = new StringBuilder();
             return url.toString();
         }
         url.append((search != null) ? ("&search="+search) : "");
@@ -225,21 +196,22 @@ public class PostServiceImpl implements PostService{
         int paginationIndex = offset / pageSize;
 
         Pageable pageable = getPageableOfPosts(sortBy, paginationIndex, pageSize);
-        List<Post> posts = null;
+        List<Post> posts;
 
         model.addAttribute("start", offset + pageSize);
         model.addAttribute("limit", pageSize);
 
-        model.addAttribute("startUrl", "/posts/read?start="+Integer.toString(offset+pageSize ) + "&limit=" + Integer.toString(pageSize) + getPaginationUrl(search, tagNames, authorNames, sortBy));
-        model.addAttribute("prevUrl", "/posts/read?start="+Integer.toString( offset-pageSize ) + "&limit=" + Integer.toString(pageSize) + getPaginationUrl(search, tagNames, authorNames, sortBy));
-        List<String> authors = (List<String>) postRepository.getAuthors(true);
+        model.addAttribute("startUrl", "/posts/read?start="+ (offset + pageSize) + "&limit=" + pageSize + getPaginationUrl(search, tagNames, authorNames, sortBy));
+        model.addAttribute("prevUrl", "/posts/read?start="+ (offset - pageSize) + "&limit=" + pageSize + getPaginationUrl(search, tagNames, authorNames, sortBy));
+        List<String> authors = postRepository.getAuthors(true);
         model.addAttribute("authors", authors);
 
         List<Tag> tags = (List<Tag>) tagRepository.findAll();
         model.addAttribute("tags", tags);
         try {
-            posts = postHelperFinder(search, tagNames, authorNames, pageable);
-//            posts = postRepository.findAllByParams( search == null ? "" : search, authorNames, tagNames, pageable);
+            PostSpecification postSpecification = new PostSpecification();
+            Specification<Post> filteredSpecification = postSpecification.findByFilters(search, authorNames, tagNames);
+            posts = postRepository.findAll(filteredSpecification, pageable).getContent();
             if (posts == null || posts.isEmpty()){
                 throw new DataNotFoundException();
             }
@@ -327,7 +299,7 @@ public class PostServiceImpl implements PostService{
                 post.setPublishedDate(null);
             }
             post.setUpdatedAt(LocalDateTime.now());
-            List<Tag> tags = new ArrayList<Tag>();
+            List<Tag> tags = new ArrayList<>();
             String[] rowTags = request.getParameter("tags").split("[\\s,]+");
             for (String rowTag : rowTags) {
                 rowTag = rowTag.replace("#", "");
